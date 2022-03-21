@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "evm"
+version = "0.1.0"
+description = "Eulerian Video Magnification project to detect a patient's heartbeat and other vital signs."
+authors = ["Adam Green <adam.green1@maine.edu>", "Timothy Bruce <timothy.bruce@maine.edu>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+opencv-python = "^4.5.5"
+numpy = "^1.22.3"
+python-dotenv = "^0.19.2"
+pydantic = "^1.9.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.5"
+black = "^22.1.0"
+pre-commit = "^2.17.0"
+vulture = "^2.3"
+tox = "^3.24.5"
+flake8 = "^4.0.1"
+pylint = "^2.12.2"
+bandit = "^1.7.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
