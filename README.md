@@ -4,7 +4,7 @@
 
 ## Installation/Setup
 
-1. `git clone https://github.com/ItsmeCurly/UI-Compliance.git && cd evm/`
+1. `git clone https://github.com/ItsmeCurly/UI-Compliance.git && cd EVM/`
 2. `curl -sSLk https://install.python-poetry.org | python3 - &&`
 Ensure that poetry is running: `poetry version`
 If poetry is not found, add it to .bashrc or environment variables
