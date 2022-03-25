@@ -6,12 +6,13 @@ authors = ["Adam Green <adam.green1@maine.edu>", "Timothy Bruce <timothy.bruce@m
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9,<3.11"
 opencv-python = "^4.5.5"
 numpy = "^1.22.3"
 python-dotenv = "^0.19.2"
 pydantic = "^1.9.0"
 SimpleITK = "^2.1.1"
+scipy = "^1.8.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
@@ -22,6 +23,7 @@ tox = "^3.24.5"
 flake8 = "^4.0.1"
 pylint = "^2.12.2"
 bandit = "^1.7.2"
+memory-profiler = "^0.60.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
