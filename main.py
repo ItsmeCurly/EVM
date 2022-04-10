@@ -4,13 +4,13 @@ from evm.video import Video, save_video
 
 if __name__ == "__main__":
     metadata = {
-        "vid_name": "face.mp4",
+        "vid_name": "face",
         "freq_min": 1.0,
         "freq_max": 1.8,
         "pyramid_levels": 3,
         "amplification": 100,
     }
-    video = Video(metadata["vid_name"])
+    video = Video(metadata["vid_name"] + ".mp4")
     amplified_video, fft, frequencies = magnify_color(video, **metadata)
     heart_rate = find_heart_rate(fft=fft, freqs=frequencies, **metadata)
 
