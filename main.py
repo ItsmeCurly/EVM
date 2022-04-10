@@ -8,141 +8,8 @@ import scipy.fftpack as fftpack
 from memory_profiler import profile
 from scipy import signal
 
-
-class Video:
-    def __init__(
-        self,
-        path: PathLike,
-        name: Optional[str] = None,
-    ) -> None:
-        self.cap = cv2.VideoCapture(path)
-
-        self._load_video_tensor()
-
-    @property
-    def frame_count(self):
-        return int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
-    @property
-    def width(self):
-        return int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-
-    @property
-    def height(self):
-        return int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    @property
-    def fps(self):
-        return int(self.cap.get(cv2.CAP_PROP_FPS))
-
-    @property
-    def channels(self):
-        # return int(self.cap.get(cv2.CAP_PROP_CHANNEL))
-        return 3  # RGB
-
-    @property
-    def tensor(self):
-        return self._tensor
-
-    # build laplacian pyramid for video
-    def laplacian(self, levels=3):
-        tensor_list = []
-        for i in range(0, self._tensor.shape[0]):
-            frame = self._tensor[i]
-            pyr = self._build_laplacian_pyramid(frame, levels=levels)
-            if i == 0:
-                for k in range(levels):
-                    tensor_list.append(
-                        np.zeros(
-                            (self._tensor.shape[0], pyr[k].shape[0], pyr[k].shape[1], 3)
-                        )
-                    )
-            for n in range(levels):
-                tensor_list[n][i] = pyr[n]
-        return tensor_list
-
-    def gaussian(self, levels: Optional[int] = 3):
-        for i in range(0, self._tensor.shape[0]):
-            frame = self._tensor[i]
-            pyr = self._build_gaussian_pyramid(frame, level=levels)
-            gaussian_frame = pyr[-1]
-            if i == 0:
-                vid_data = np.zeros(
-                    (
-                        self._tensor.shape[0],
-                        gaussian_frame.shape[0],
-                        gaussian_frame.shape[1],
-                        3,
-                    )
-                )
-            vid_data[i] = gaussian_frame
-        return vid_data
-
-    # apply temporal ideal bandpass filter to gaussian video
-    def temporal_ideal_filter(self, low, high, fps, axis=0):
-        gaussian_tensor = self.gaussian()
-        fft = fftpack.fft(gaussian_tensor, axis=axis)
-        frequencies = fftpack.fftfreq(gaussian_tensor.shape[0], d=1.0 / fps)
-        bound_low = (np.abs(frequencies - low)).argmin()
-        bound_high = (np.abs(frequencies - high)).argmin()
-        fft[:bound_low] = 0
-        fft[bound_high:-bound_high] = 0
-        fft[-bound_low:] = 0
-        iff = fftpack.ifft(fft, axis=axis)
-        return np.abs(iff)
-
-    # amplify the video
-    def amplified_gaussian(
-        self, levels: Optional[int] = 3, amplification: Optional[int] = 50
-    ):
-        return self.gaussian(levels=levels) * amplification
-
-    # reconstract video from original video and gaussian video
-    def reconstruct_video(self, levels=3):
-        final_video = np.zeros(self._tensor.shape)
-
-        amp_video = self.amplified_gaussian(amplification=50)
-        for i in range(0, amp_video.shape[0]):
-            img = amp_video[i]
-            for x in range(levels):
-                img = cv2.pyrUp(img)
-            img = img + self._tensor[i]
-            final_video[i] = img
-        return final_video
-
-    def _load_video_tensor(self):
-        if not self.cap.isOpened():
-            return None
-
-        self._tensor = np.zeros(
-            (self.frame_count, self.height, self.width, self.channels), dtype="float"
-        )
-        for i in range(self.frame_count):
-            # Capture frame-by-frame
-            ret, frame = self.cap.read()
-            if not ret:
-                break
-            else:
-                self._tensor[i] = frame
-
-    # Build Gaussian Pyramid
-    def _build_gaussian_pyramid(self, frame: int, level: int = 3):
-        s = frame.copy()
-        pyramid = [s]
-        for i in range(level):
-            s = cv2.pyrDown(s)
-            pyramid.append(s)
-        return pyramid
-
-    # Build Laplacian Pyramid
-    def _build_laplacian_pyramid(self, frame, levels):
-        gaussian_pyramid = self._build_gaussian_pyramid(frame, levels)
-        pyramid = []
-        for i in range(levels, 0, -1):
-            GE = cv2.pyrUp(gaussian_pyramid[i])
-            L = cv2.subtract(gaussian_pyramid[i - 1], GE)
-            pyramid.append(L)
-        return pyramid
+from src.evm.utils import find_file
+from src.evm.video import Video, amplify_video, fft_filter
 
 
 # convert RBG to YIQ
@@ -171,7 +38,7 @@ def ntsc2rbg(src):
 
 # save video to files
 def save_video(video_tensor):
-    fourcc = cv2.VideoWriter_fourcc(*"MP4V")
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     [height, width] = video_tensor[0].shape[0:2]
     writer = cv2.VideoWriter("out.mp4", fourcc, 30, (width, height), 1)
     for i in range(0, video_tensor.shape[0]):
@@ -179,14 +46,18 @@ def save_video(video_tensor):
     writer.release()
 
 
-# magnify color
-# def magnify_color(video_name, low, high, levels=3, amplification=20):
-#     t, f = load_video(video_name)
-#     gau_video = gaussian_video(t, levels=levels)
-#     filtered_tensor = temporal_ideal_filter(gau_video, low, high, f)
-#     amplified_video = amplify_video(filtered_tensor, amplification=amplification)
-#     final = reconstruct_video(amplified_video, t, levels=3)
-#     save_video(final)
+def magnify_color(video_name, low, high, levels=3, amplification=50):
+    if isinstance(video_name, str):
+        video_path = find_file(video_name)
+        if video_path:
+            video_name = str(video_path[0].resolve())
+    video = Video(video_name)
+    gaussian_video = video.gaussian(levels=levels)
+    filtered_tensor, fft, frequencies = fft_filter(gaussian_video, low, high, video.fps)
+    heart_rate = find_heart_rate(fft, frequencies, 1, 1.8)
+
+    amplified_video = amplify_video(filtered_tensor, amplification=amplification)
+    save_video(reconstruct_video(amplified_video, video.tensor, levels=levels))
 
 
 # butterworth bandpass filter
@@ -200,7 +71,7 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
 
 
 # reconstract video from laplacian pyramid
-def reconstract_from_tensorlist(filter_tensor_list, levels=3):
+def reconstruct_from_tensorlist(filter_tensor_list, levels=3):
     final = np.zeros(filter_tensor_list[-1].shape)
     for i in range(filter_tensor_list[0].shape[0]):
         up = filter_tensor_list[0][i]
@@ -212,6 +83,42 @@ def reconstract_from_tensorlist(filter_tensor_list, levels=3):
     return final
 
 
+# reconstract video from original video and gaussian video
+def reconstruct_video(amp_video, origin_video, levels=3):
+    final_video = np.zeros(origin_video.shape)
+    for i in range(0, amp_video.shape[0]):
+        img = amp_video[i]
+        for x in range(levels):
+            img = cv2.pyrUp(img)
+        img = img + origin_video[i]
+        final_video[i] = img
+    return final_video
+
+
+# Calculate heart rate from FFT peaks
+def find_heart_rate(fft, freqs, freq_min, freq_max):
+    fft_maximums = []
+
+    for i in range(fft.shape[0]):
+        if freq_min <= freqs[i] <= freq_max:
+            fftMap = abs(fft[i])
+            fft_maximums.append(fftMap.max())
+        else:
+            fft_maximums.append(0)
+
+    peaks, properties = signal.find_peaks(fft_maximums)
+    max_peak = -1
+    max_freq = 0
+
+    # Find frequency with max amplitude in peaks
+    for peak in peaks:
+        if fft_maximums[peak] > max_freq:
+            max_freq = fft_maximums[peak]
+            max_peak = peak
+
+    return freqs[max_peak] * 60
+
+
 # manify motion
 @profile
 def magnify_motion(video_name, low, high, levels=1, amplification=20):
@@ -219,7 +126,7 @@ def magnify_motion(video_name, low, high, levels=1, amplification=20):
 
     save_video(
         video.tensor
-        + reconstract_from_tensorlist(
+        + reconstruct_from_tensorlist(
             [
                 butter_bandpass_filter(
                     video.laplacian(video.tensor, levels=levels)[i],
@@ -236,5 +143,5 @@ def magnify_motion(video_name, low, high, levels=1, amplification=20):
 
 
 if __name__ == "__main__":
-    # magnify_color("baby.mp4",0.4,3)
-    magnify_motion("baby.mp4", 0.4, 3)
+    magnify_color("baby.mp4", 0.4, 3)
+    # magnify_motion("baby.mp4", 0.4, 3)
