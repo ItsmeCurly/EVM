@@ -1,6 +1,6 @@
 import sys
 from os import PathLike
-from typing import Optional
+from typing import Optional, Union
 
 import cv2
 import numpy as np
@@ -8,13 +8,20 @@ import scipy.fftpack as fftpack
 from memory_profiler import profile
 from scipy import signal
 
+from evm.utils import find_file
+
 
 class Video:
     def __init__(
         self,
-        path: PathLike,
+        name_or_path: Union[str, PathLike],
     ) -> None:
-        self.cap = cv2.VideoCapture(path)
+        if isinstance(name_or_path, str):
+            video_path = find_file(name_or_path)
+            if video_path:
+                name_or_path = str(video_path[0].resolve())
+
+        self.cap = cv2.VideoCapture(name_or_path)
 
         self._load_video_tensor()
 
@@ -43,40 +50,6 @@ class Video:
     def tensor(self):
         return self._tensor
 
-    # build laplacian pyramid for video
-    def laplacian(self, levels=3):
-        tensor_list = []
-        for i in range(0, self._tensor.shape[0]):
-            frame = self._tensor[i]
-            pyr = self._build_laplacian_pyramid(frame, levels=levels)
-            if i == 0:
-                for k in range(levels):
-                    tensor_list.append(
-                        np.zeros(
-                            (self._tensor.shape[0], pyr[k].shape[0], pyr[k].shape[1], 3)
-                        )
-                    )
-            for n in range(levels):
-                tensor_list[n][i] = pyr[n]
-        return tensor_list
-
-    def gaussian(self, levels: Optional[int] = 3):
-        for i in range(0, self._tensor.shape[0]):
-            frame = self._tensor[i]
-            pyr = self._build_gaussian_pyramid(frame, level=levels)
-            gaussian_frame = pyr[-1]
-            if i == 0:
-                vid_data = np.zeros(
-                    (
-                        self._tensor.shape[0],
-                        gaussian_frame.shape[0],
-                        gaussian_frame.shape[1],
-                        3,
-                    )
-                )
-            vid_data[i] = gaussian_frame
-        return vid_data
-
     def _load_video_tensor(self):
         if not self.cap.isOpened():
             return None
@@ -92,40 +65,41 @@ class Video:
             else:
                 self._tensor[i] = frame
 
-    # Build Gaussian Pyramid
-    def _build_gaussian_pyramid(self, frame: int, level: int = 3):
-        s = frame.copy()
-        pyramid = [s]
-        for i in range(level):
-            s = cv2.pyrDown(s)
-            pyramid.append(s)
-        return pyramid
 
-    # Build Laplacian Pyramid
-    def _build_laplacian_pyramid(self, frame, levels):
-        gaussian_pyramid = self._build_gaussian_pyramid(frame, levels)
-        pyramid = []
-        for i in range(levels, 0, -1):
-            GE = cv2.pyrUp(gaussian_pyramid[i])
-            L = cv2.subtract(gaussian_pyramid[i - 1], GE)
-            pyramid.append(L)
-        return pyramid
-
-
-def amplify_video(video, amplification: int):
+def amplify(video, amplification: int):
     return video * amplification
 
 
-# Temporal bandpass filter with Fast-Fourier Transform
-def fft_filter(video, freq_min: float, freq_max: float, fps: float, axis: int = 0):
-    fft = fftpack.fft(video, axis=0)
-    frequencies = fftpack.fftfreq(video.shape[0], d=1.0 / fps)
-    bound_low = (np.abs(frequencies - freq_min)).argmin()
-    bound_high = (np.abs(frequencies - freq_max)).argmin()
-    fft[:bound_low] = 0
-    fft[bound_high:-bound_high] = 0
-    fft[-bound_low:] = 0
-    iff = fftpack.ifft(fft, axis=0)
-    result = np.abs(iff)
+# reconstract video from laplacian pyramid
+def reconstruct_from_tensorlist(filter_tensor_list, pyramid_levels):
+    final = np.zeros(filter_tensor_list[-1].shape)
+    for i in range(filter_tensor_list[0].shape[0]):
+        up = filter_tensor_list[0][i]
+        for n in range(pyramid_levels - 1):
+            up = (
+                cv2.pyrUp(up) + filter_tensor_list[n + 1][i]
+            )  # can be changed to up=cv2.pyrUp(up)
+        final[i] = up
+    return final
 
-    return result, fft, frequencies
+
+# reconstract video from original video and gaussian video
+def reconstruct_video(amp_video, origin_video, pyramid_levels):
+    final_video = np.zeros(origin_video.shape)
+    for i in range(0, amp_video.shape[0]):
+        img = amp_video[i]
+        for x in range(pyramid_levels):
+            img = cv2.pyrUp(img)
+        img = img + origin_video[i]
+        final_video[i] = img
+    return final_video
+
+
+# save video to files
+def save_video(video_tensor, name="out"):
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    [height, width] = video_tensor[0].shape[0:2]
+    writer = cv2.VideoWriter(f"{name}.mp4", fourcc, 30, (width, height), 1)
+    for i in range(0, video_tensor.shape[0]):
+        writer.write(cv2.convertScaleAbs(video_tensor[i]))
+    writer.release()
