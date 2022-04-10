@@ -8,8 +8,8 @@ import scipy.fftpack as fftpack
 from memory_profiler import profile
 from scipy import signal
 
-from src.evm.utils import find_file
-from src.evm.video import Video, amplify_video, fft_filter
+from evm.utils import find_file
+from evm.video import Video, amplify_video, fft_filter
 
 
 # convert RBG to YIQ
