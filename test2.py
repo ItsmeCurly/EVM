@@ -9,7 +9,7 @@ from vidstab import VidStab, download_ostrich_video, layer_overlay
 # Initialize object tracker, stabilizer, and video reader
 object_tracker = cv2.TrackerCSRT_create()
 stabilizer = VidStab()
-vidcap = cv2.VideoCapture("data\\15_meter.MOV")
+vidcap = cv2.VideoCapture("data\\35_meter.MOV")
 fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
 out = False
 
@@ -19,17 +19,13 @@ object_bounding_box = None
 box_dim = [0,0]
 box = [0, 0, 4000, 2250]
 
-f = 0
-
 while True:
-    f = f + 1
-    print(f)
     grabbed_frame, frame = vidcap.read()
 
     #frame = cv2.resize(frame,(1280,720),fx=0,fy=0, interpolation = cv2.INTER_CUBIC)
 
     # Pass frame to stabilizer even if frame is None
-    stabilized_frame = stabilizer.stabilize_frame(input_frame=frame, smoothing_window=20, border_size=0)
+    stabilized_frame = stabilizer.stabilize_frame(input_frame=frame, border_size=0)
 
     frame = False
 
@@ -69,7 +65,8 @@ while True:
                 fps = vidcap.get(cv2.CAP_PROP_FPS)
                 out = cv2.VideoWriter('output.mp4',fourcc, fps, (box[2],box[3]))
             #stabilized_frame = cv2.resize(stabilized_frame,(box[2],box[3]),fx=0,fy=0, interpolation = cv2.INTER_CUBIC)
-            out.write(stabilized_frame)
+            if stabilized_frame.sum() > 0:
+                out.write(stabilized_frame)
 
     # Display stabilized output
     cv2.imshow("Frame", stabilized_frame)

@@ -20,7 +20,7 @@ while True:
     grabbed_frame, frame = vidcap.read()
 
     # Pass frame to stabilizer even if frame is None
-    stabilized_frame = stabilizer.stabilize_frame(input_frame=frame, border_size=50)
+    stabilized_frame = stabilizer.stabilize_frame(input_frame=frame, border_size=0)
 
     # If stabilized_frame is None then there are no frames left to process
     if stabilized_frame is None:
@@ -38,9 +38,11 @@ while True:
     cv2.imshow("Frame", stabilized_frame)
     shape = stabilized_frame.shape
     if not out:
-        out = cv2.VideoWriter('output_stabilized.mp4',fourcc, 25, (shape[1],shape[0]))
+        fps = vidcap.get(cv2.CAP_PROP_FPS)
+        out = cv2.VideoWriter('output_stabilized.mp4',fourcc, fps, (shape[1],shape[0]))
     #stabilized_frame = cv2.resize(stabilized_frame,(shape[1],shape[0]),fx=0,fy=0, interpolation = cv2.INTER_CUBIC)
-    out.write(stabilized_frame)
+    if stabilized_frame.sum() > 0:
+        out.write(stabilized_frame)
 
     key = cv2.waitKey(5)
 
