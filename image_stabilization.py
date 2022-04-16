@@ -5,7 +5,7 @@ from vidstab import VidStab, layer_overlay
 object_tracker = cv2.TrackerCSRT_create()           # Initialize the object tracker
 primary_stabilizer = VidStab()                      # Initialize the video stabilizer pre-tracker
 secondary_stabilizer = VidStab()                    # Initialize the video stabilizer post-tracker
-vidcap = cv2.VideoCapture("data\\15_meter.MOV")     # The video stream
+vidcap = cv2.VideoCapture("data\\35_meter.MOV")     # The video stream
 fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v') # The video writer file format
 out = False                                         # The video writer (to be initialized once the framerate is known)
 object_bounding_box = None                          # Initialize the bounding box
@@ -29,8 +29,11 @@ while True:
 
             # Set the initial bounding box dimensions if they have not already ben set
             if box_dim[0] == 0:
-                box_dim[0] = w
-                box_dim[1] = h
+                dim = max(w, h) + 8
+                if dim % 8 != 0:
+                    dim = dim + (8 - (dim % 8))
+                box_dim[0] = dim
+                box_dim[1] = dim
     
             # Place the bounding box in the center of the selected area
             center = [x + (w / 2), y + (h / 2)]
@@ -42,7 +45,7 @@ while True:
             # If a frame was created, save it.
             if stabilized_frame.sum() > 0:
                 # Perform secondary stabilization to account for shaky object tracking.
-                final_frame = secondary_stabilizer.stabilize_frame(input_frame=stabilized_frame, border_size=0)
+                final_frame = secondary_stabilizer.stabilize_frame(input_frame=stabilized_frame, border_size=-8)
 
                 # If secondary stabilization returns a frame (Remember that it starts with 30 blank frames, so between primary and secondary we lose 1 to 2 seconds from the start).
                 if final_frame.sum() > 0:
@@ -50,7 +53,7 @@ while True:
                     if not out:
                         fps = vidcap.get(cv2.CAP_PROP_FPS)
                         shape = final_frame.shape
-                        out = cv2.VideoWriter('output.mp4',fourcc, fps, (shape[1],shape[0]))
+                        out = cv2.VideoWriter('35_meter_output.mp4',fourcc, fps, (shape[1],shape[0]))
                     #Write the output, and make sure it is displayed on the user interface.
                     out.write(final_frame)
                     stabilized_frame = final_frame
