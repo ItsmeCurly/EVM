@@ -3,13 +3,13 @@ from evm.converters import metadata2str
 from evm.magnify import find_heart_rate, magnify_color
 from evm.video import Video, save_video
 import cv2
-from time import sleep
 
 def on_change_freq_min(value):
-    metadata["freq_min"] = value / 100
+    metadata["freq_min"] = (value- 10) / 60
+    metadata["freq_max"] = (value + 10) / 60
 
 def on_change_freq_max(value):
-    metadata["freq_max"] = value / 100
+    metadata["freq_max"] = value / 60
 
 def on_change_amp(value):
     metadata["amplification"] = value
@@ -21,21 +21,24 @@ def do_task():
 
 if __name__ == "__main__":
     metadata = {
-        "vid_name": "15_meter_output",
-        "freq_min": 12/12,
-        "freq_max": 13/12,
+        #"vid_name": "face",
+        "vid_name": "face_output",
+        "freq_min": 45 / 60,
+        "freq_max": 60 / 60,
         "pyramid_levels": 3,
-        "amplification": 50,
+        "amplification": 100,
     }
     old_metadata = metadata.copy()
-    video = Video(metadata["vid_name"] + ".mp4")
+    video = Video(metadata["vid_name"] + ".avi")
+
+
 
     amplified_video, heart_rate = do_task()
 
     cv2.namedWindow('test',cv2.WINDOW_NORMAL)
     cv2.resizeWindow('test', 600,600)
-    cv2.createTrackbar('freq_min', "test", 0, 200, on_change_freq_min)
-    cv2.createTrackbar('freq_max', "test", 0, 200, on_change_freq_max)
+    cv2.createTrackbar('freq_min', "test", 20, 150, on_change_freq_min)
+    cv2.createTrackbar('freq_max', "test", 20, 150, on_change_freq_max)
     cv2.createTrackbar('amp', "test", 0, 100, on_change_amp)
 
     currentframe = 0

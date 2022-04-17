@@ -7,3 +7,5 @@ __pycache__
 .vscode
 
 data/*_meter.MOV
+data/*bpm*.mp4
+vid_name*.mp4

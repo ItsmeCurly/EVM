@@ -5,12 +5,15 @@ from vidstab import VidStab, layer_overlay
 object_tracker = cv2.TrackerCSRT_create()           # Initialize the object tracker
 primary_stabilizer = VidStab()                      # Initialize the video stabilizer pre-tracker
 secondary_stabilizer = VidStab()                    # Initialize the video stabilizer post-tracker
-vidcap = cv2.VideoCapture("data\\35_meter.MOV")     # The video stream
-fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v') # The video writer file format
+vidcap = cv2.VideoCapture("data\\face.mp4")     # The video stream
+fourcc = cv2.VideoWriter_fourcc(*'XVID') # The video writer file format
 out = False                                         # The video writer (to be initialized once the framerate is known)
 object_bounding_box = None                          # Initialize the bounding box
 
 box_dim = [0, 0]                                    # The chosen dimension of th bounding box
+
+cv2.namedWindow('Frame',cv2.WINDOW_NORMAL)
+cv2.resizeWindow('Frame', 1920,1080)
 
 while True:
     grabbed_frame, frame = vidcap.read()            # Read a frame of the video
@@ -53,7 +56,7 @@ while True:
                     if not out:
                         fps = vidcap.get(cv2.CAP_PROP_FPS)
                         shape = final_frame.shape
-                        out = cv2.VideoWriter('35_meter_output.mp4',fourcc, fps, (shape[1],shape[0]))
+                        out = cv2.VideoWriter('face_output.avi',fourcc, fps, (shape[1],shape[0]))
                     #Write the output, and make sure it is displayed on the user interface.
                     out.write(final_frame)
                     stabilized_frame = final_frame
