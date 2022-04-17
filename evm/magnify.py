@@ -72,4 +72,4 @@ def find_heart_rate(fft, freqs, freq_min, freq_max, **kwargs):
             max_freq = fft_maximums[peak]
             max_peak = peak
 
-    return freqs[max_peak] * 60 / freq_min
+    return freqs[max_peak] * 60
