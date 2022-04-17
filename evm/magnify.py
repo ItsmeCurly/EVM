@@ -1,3 +1,4 @@
+import numpy as np
 from memory_profiler import profile
 from scipy import signal
 
@@ -14,14 +15,15 @@ def magnify_color(
     pyramid_levels=4,
     **kwargs,
 ):
-
+    print(video.fps)
     gau_video = gaussian_video(video.tensor, pyramid_levels=pyramid_levels)
-    filtered_tensor, fft, frequencies = fft_filter(
-        gau_video, freq_min, freq_max, video.fps
+    amplified_video = amplify(gau_video, amplification=amplification)
+    filtered_video, fft, frequencies = fft_filter(
+        amplified_video, freq_min, freq_max, video.fps
     )
-    amplified_video = amplify(filtered_tensor, amplification=amplification)
     return (
-        reconstruct_video(amplified_video, video.tensor, pyramid_levels=pyramid_levels),
+        reconstruct_video(filtered_video, video.tensor, pyramid_levels=pyramid_levels),
+        filtered_video,
         fft,
         frequencies,
     )
@@ -57,7 +59,7 @@ def find_heart_rate(fft, freqs, freq_min, freq_max, **kwargs):
 
     for i in range(fft.shape[0]):
         if freq_min <= freqs[i] <= freq_max:
-            fftMap = abs(fft[i])
+            fftMap = np.abs(fft[i])
             fft_maximums.append(fftMap.max())
         else:
             fft_maximums.append(0)
@@ -73,3 +75,13 @@ def find_heart_rate(fft, freqs, freq_min, freq_max, **kwargs):
             max_peak = peak
 
     return freqs[max_peak] * 60
+
+
+def find_heart_rate_2(ifft, fps, **kwargs):
+    fft_maximums = []
+    for i in ifft:
+        fft_maximums.append(np.max(i))
+
+    peaks, _ = signal.find_peaks(fft_maximums)
+
+    return len(peaks) * (fps / ifft.shape[0]) * 60

@@ -1,6 +1,10 @@
+import cv2
 import numpy as np
 import scipy.fftpack as fftpack
+from matplotlib import pyplot as plt
 from scipy import signal
+
+from evm.video import save_video
 
 
 # butterworth bandpass filter
@@ -22,7 +26,16 @@ def fft_filter(video, freq_min: float, freq_max: float, fps: float, axis: int = 
     fft[:bound_freq_min] = 0
     fft[bound_freq_max:-bound_freq_max] = 0
     fft[-bound_freq_min:] = 0
-    iff = fftpack.ifft(fft, axis=0)
-    result = np.abs(iff)
+    ifft = fftpack.ifft(fft, axis=0)
+    result = np.abs(ifft)
+
+    save_video(result, "test_video")
+
+    # res = []
+    # for i in result:
+    #     res.append(np.average(i))
+
+    # plt.plot(res)
+    # plt.show()
 
     return result, fft, frequencies
