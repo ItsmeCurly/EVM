@@ -1,25 +1,16 @@
-import cv2
+from evm.converters import metadata2str
+from evm.magnify import magnify_motion
+from evm.video import Video, save_video
 
-vidcap = cv2.VideoCapture("1080p_output.mp4")     # The video stream
-fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v') # The video writer file format
+metadata = {
+    "vid_name": "subway",
+    "freq_min": 0.4,
+    "freq_max": 3.0,
+    "pyramid_levels": 4,
+    "amplification": 10,
+}
+video = Video(metadata["vid_name"] + ".mp4")
 
-out = False
+processed = magnify_motion(video, **metadata)
 
-while True:
-    grabbed_frame, frame = vidcap.read()            # Read a frame of the video
-
-    if frame is None:
-        break
-
-    frame = cv2.pyrUp(frame)
-
-    shape = frame.shape
-
-    if not out:
-        fps = vidcap.get(cv2.CAP_PROP_FPS)
-        out = cv2.VideoWriter('1080p_output2.mp4',fourcc, fps, (shape[1],shape[0]))
-
-    out.write(frame)
-
-vidcap.release()
-out.release()
+save_video(processed, metadata2str(metadata))
