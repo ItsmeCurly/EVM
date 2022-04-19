@@ -1,9 +1,10 @@
 import numpy as np
+from matplotlib import pyplot as plt
 from memory_profiler import profile
 from scipy import signal
 
 from evm.filter import butter_bandpass_filter, fft_filter
-from evm.pyramid import gaussian_video
+from evm.pyramid import gaussian_video, laplacian_video
 from evm.video import Video, amplify, reconstruct_from_tensorlist, reconstruct_video
 
 
@@ -37,11 +38,12 @@ def magnify_motion(
     freq_max=3.0,
     amplification=20,
     pyramid_levels=4,
+    **kwargs,
 ):
     return video.tensor + reconstruct_from_tensorlist(
         [
             butter_bandpass_filter(
-                video.laplacian(video.tensor, pyramid_levels=pyramid_levels)[i],
+                laplacian_video(video.tensor, pyramid_levels=pyramid_levels)[i],
                 freq_min,
                 freq_max,
                 video.fps,

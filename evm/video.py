@@ -54,8 +54,9 @@ class Video:
         if not self.cap.isOpened():
             return None
 
-        self._tensor = np.zeros(
-            (self.frame_count, self.height, self.width, self.channels), dtype="float"
+        self._tensor = np.empty(
+            (self.frame_count, self.height, self.width, self.channels),
+            dtype=np.dtype("uint8"),
         )
         for i in range(self.frame_count):
             # Capture frame-by-frame

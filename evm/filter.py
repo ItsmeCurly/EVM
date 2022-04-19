@@ -29,8 +29,6 @@ def fft_filter(video, freq_min: float, freq_max: float, fps: float, axis: int = 
     ifft = fftpack.ifft(fft, axis=0)
     result = np.abs(ifft)
 
-    save_video(result, "test_video")
-
     # res = []
     # for i in result:
     #     res.append(np.average(i))
