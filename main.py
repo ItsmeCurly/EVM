@@ -5,16 +5,18 @@ import cv2
 from matplotlib import pyplot as plt
 
 from evm.converters import metadata2str
-from evm.magnify import find_heart_rate, find_heart_rate_2, magnify_color
+from evm.magnify import find_heart_rate, find_heart_rate_2, magnify_color, magnify_motion
 from evm.video import Video, save_video
 
 
 def on_change_freq_min(value):
-    metadata["freq_min"] = value / 100
+    metadata["freq_min"] = value / 60
+    #metadata["freq_min"] = (value - 5) / 60
+    #metadata["freq_max"] = (value + 5) / 60
 
 
 def on_change_freq_max(value):
-    metadata["freq_max"] = value / 100
+    metadata["freq_max"] = value / 60
 
 
 def on_change_amp(value):
@@ -27,13 +29,14 @@ def do_task():
     heart_rate = find_heart_rate(fft=fft, freqs=frequencies, **metadata)
     heart_rate_2 = find_heart_rate_2(ifft=filtered_video, fps=video.fps, **metadata)
 
-    print(heart_rate, heart_rate_2)
+    #print(heart_rate, heart_rate_2)
+
     return amplified_video, heart_rate
 
 
 if __name__ == "__main__":
     metadata = {
-        "vid_name": "face",
+        "vid_name": "1080p_output",
         "freq_min": 0.8,
         "freq_max": 1,
         "pyramid_levels": 3,
@@ -41,6 +44,8 @@ if __name__ == "__main__":
     }
     old_metadata = metadata.copy()
     video = Video(metadata["vid_name"] + ".mp4")
+
+    """
 
     amplified_video, heart_rate = do_task()
 
@@ -76,4 +81,5 @@ if __name__ == "__main__":
     save_video(amplified_video, metadata2str(metadata))
 
     print(f"Calculated heart rate: {heart_rate}")
-    # magnify_motion("baby.mp4", 0.4, 3)
+    """
+    magnify_motion(video, 0.4, 3)
