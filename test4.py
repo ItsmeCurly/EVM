@@ -3,9 +3,9 @@ from evm.magnify import magnify_motion
 from evm.video import Video, save_video
 
 metadata = {
-    "vid_name": "subway",
-    "freq_min": 0.4,
-    "freq_max": 3.0,
+    "vid_name": "1080p_output",
+    "freq_min": 1.0,
+    "freq_max": 2.0,
     "pyramid_levels": 4,
     "amplification": 10,
 }

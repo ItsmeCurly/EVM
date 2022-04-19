@@ -27,9 +27,9 @@ def do_task():
     amplified_video, filtered_video, fft, frequencies = magnify_color(video, **metadata)
 
     heart_rate = find_heart_rate(fft=fft, freqs=frequencies, **metadata)
-    heart_rate_2 = find_heart_rate_2(ifft=filtered_video, fps=video.fps, **metadata)
+    #heart_rate_2 = find_heart_rate_2(ifft=filtered_video, fps=video.fps, **metadata)
 
-    #print(heart_rate, heart_rate_2)
+    print(heart_rate)
 
     return amplified_video, heart_rate
 
@@ -45,10 +45,8 @@ if __name__ == "__main__":
     old_metadata = metadata.copy()
     video = Video(metadata["vid_name"] + ".mp4")
 
-    """
-
+    
     amplified_video, heart_rate = do_task()
-
     cv2.namedWindow("test", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("test", 600, 600)
     cv2.createTrackbar(
@@ -60,7 +58,6 @@ if __name__ == "__main__":
     cv2.createTrackbar(
         "amp", "test", int(metadata["amplification"]), 150, on_change_amp
     )
-
     currentframe = 0
     flag = True
     while flag:
@@ -77,9 +74,7 @@ if __name__ == "__main__":
             if old_metadata != metadata:
                 old_metadata = metadata.copy()
                 break
-
     save_video(amplified_video, metadata2str(metadata))
-
     print(f"Calculated heart rate: {heart_rate}")
-    """
-    magnify_motion(video, 0.4, 3)
+    
+    #magnify_motion(video, 0.4, 3)
